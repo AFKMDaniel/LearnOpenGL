@@ -2,4 +2,7 @@
 
 project ("LearnOpenGL" LANGUAGES CXX C)
 
-add_subdirectory("src")
+include_directories("${CMAKE_SOURCE_DIR}/include")
+
+add_subdirectory(lib)
+add_subdirectory(src)
