@@ -8,7 +8,7 @@ private:
 	unsigned int program;
 private:
 	std::string getShaderCode(const std::string& path);
-	unsigned int compileShader(GLenum type, std::string sourceCode);
+	unsigned int compileShader(GLenum type, const std::string& sourceCode);
 	void createProgram(unsigned int vShader, unsigned int fShader);
 public:
 	Shader(const std::string& vertPath, const std::string& fragPath);
