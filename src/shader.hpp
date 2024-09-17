@@ -1,6 +1,7 @@
 #pragma once
 #include <glad/glad.h>
 #include <string>
+#include <glm/glm.hpp>
 
 class Shader
 {
@@ -16,4 +17,5 @@ public:
 	void setUniform(const std::string& name, bool value);
 	void setUniform(const std::string& name, float value);
 	void setUniform(const std::string& name, int value);
+	void setUniform(const std::string& name, glm::mat4& value);
 };
