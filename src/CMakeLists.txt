@@ -8,7 +8,7 @@ FetchContent_MakeAvailable(GLFW)
 
 find_package(OpenGL REQUIRED)
 
-add_executable (LearnOpenGL "main.cpp" "shader.cpp" "shader.hpp")
+add_executable (LearnOpenGL "main.cpp" "shader.cpp" "camera.cpp")
 target_compile_features(LearnOpenGL PRIVATE cxx_std_20)
 target_link_libraries(LearnOpenGL PRIVATE glad glfw stb_image ${OPENGL_LIBRARIES})
 

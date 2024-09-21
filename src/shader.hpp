@@ -6,7 +6,7 @@
 class Shader
 {
 private:
-	unsigned int program;
+	unsigned int mProgram;
 private:
 	std::string getShaderCode(const std::string& path);
 	unsigned int compileShader(GLenum type, const std::string& sourceCode);

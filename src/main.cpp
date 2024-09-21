@@ -7,39 +7,62 @@
 #include <stb_image.h>
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
-#include <glm/gtc/type_ptr.hpp>
 
 #include "shader.hpp"
-
-bool keyUpPressed = false;
-bool keyDownPressed = false;
+#include "camera.hpp"
 
 const int SCREEN_WIDTH = 800;
 const int SCREEN_HEIGHT = 600;
+
+double _lastX = SCREEN_WIDTH / 2;
+double _lastY = SCREEN_HEIGHT / 2;
+
+Camera camera{glm::vec3(0.0f, 0.0f, 3.0f)};
+
+GLfloat _deltaTime = 0.0f;	// Время, прошедшее между последним и текущим кадром
+GLfloat _lastFrame = 0.0f;  	// Время вывода последнего кадра
+
+std::vector<bool> keys(1024, false);
 
 void framebuffer_size_callback(GLFWwindow* window, int width, int height)
 {
 	glViewport(0, 0, width, height);
 }
 
-void processInput(GLFWwindow* window)
+void key_callback(GLFWwindow* window, int key, int scancode, int action, int mode)
 {
-	if (glfwGetKey(window, GLFW_KEY_BACKSPACE) == GLFW_PRESS)
-	{
-		glfwSetWindowShouldClose(window, true);
-	}
-	if (glfwGetKey(window, GLFW_KEY_UP) == GLFW_PRESS) {
-		keyUpPressed = true;
-	}
-	if (glfwGetKey(window, GLFW_KEY_UP) == GLFW_RELEASE) {
-		keyUpPressed = false;
-	}
-	if (glfwGetKey(window, GLFW_KEY_DOWN) == GLFW_PRESS) {
-		keyDownPressed = true;
-	}
-	if (glfwGetKey(window, GLFW_KEY_DOWN) == GLFW_RELEASE) {
-		keyDownPressed = false;
-	}
+	if (key == GLFW_KEY_ESCAPE && action == GLFW_PRESS)
+		glfwSetWindowShouldClose(window, GL_TRUE);
+	if (action == GLFW_PRESS)
+		keys[key] = true;
+	if (action == GLFW_RELEASE)
+		keys[key] = false;
+}
+
+void mouse_callback(GLFWwindow* window, double xPos, double yPos)
+{
+	GLfloat xOffset = xPos - _lastX;
+	GLfloat yOffset = _lastY - yPos; // Обратный порядок вычитания потому что оконные Y-координаты возрастают с верху вниз 
+	_lastX = xPos;
+	_lastY = yPos;
+
+	camera.processMouseMovement(xOffset, yOffset);
+}
+
+void doMovement()
+{
+	if (keys[GLFW_KEY_W])
+		camera.processKeyInput(Direction::FORWARD, _deltaTime);
+	if (keys[GLFW_KEY_S])
+		camera.processKeyInput(Direction::BACKWARD, _deltaTime);
+	if (keys[GLFW_KEY_D])
+		camera.processKeyInput(Direction::RIGHT, _deltaTime);
+	if (keys[GLFW_KEY_A])
+		camera.processKeyInput(Direction::LEFT, _deltaTime);
+	if (keys[GLFW_KEY_E])
+		camera.processKeyInput(Direction::UP, _deltaTime);
+	if (keys[GLFW_KEY_Q])
+		camera.processKeyInput(Direction::DOWN, _deltaTime);
 }
 
 int main(void)
@@ -66,9 +89,13 @@ int main(void)
 	}
 
 	glViewport(0, 0, 800, 600);
+	glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
 	glEnable(GL_DEPTH_TEST);
+	glfwSetCursorPos(window, _lastX, _lastY);
 
 	glfwSetFramebufferSizeCallback(window, framebuffer_size_callback);
+	glfwSetKeyCallback(window, key_callback);
+	glfwSetCursorPosCallback(window, mouse_callback);
 
 	int width, height, nrChannels;
 	unsigned int texture0, texture1;
@@ -176,47 +203,31 @@ int main(void)
 
 	Shader shader{ "resources/shaders/shader.vert", "resources/shaders/shader.frag" };
 
+	float alpha = 0.2f;
+
 	shader.use();
 	shader.setUniform("texture0", 0);
 	shader.setUniform("texture1", 1);
-
-	double deltaTime, currentFrame;
-	double lastFrame = 0;
-
-	float alpha = 0.5f;
-
-	glm::mat4 view;
-	// Обратите внимание, что мы смещаем сцену в направлении обратном тому, в котором мы хотим переместиться
-	view = glm::translate(view, glm::vec3(0.0f, 0.0f, -5.0f));
-	shader.setUniform("view", view);
+	shader.setUniform("alpha", alpha);
 
 	glm::mat4 projection;
 	projection = glm::perspective(45.0f, static_cast<float>(SCREEN_WIDTH / SCREEN_HEIGHT), 0.1f, 100.0f);
 	shader.setUniform("projection", projection);
-	
 
 	while (!glfwWindowShouldClose(window))
 	{
-		processInput(window);
+		glfwPollEvents();
+
+		auto currentFrame = glfwGetTime();
+		_deltaTime = currentFrame - _lastFrame;
+		_lastFrame = currentFrame;
 
 		glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-		currentFrame = glfwGetTime();
-		deltaTime = currentFrame - lastFrame;
-		lastFrame = currentFrame;
-
-		if (keyUpPressed) 
-		{
-			alpha = std::min(static_cast<float>(alpha + deltaTime), 1.0f);
-		}
-		if (keyDownPressed) 
-		{
-			alpha = std::max(static_cast<float>(alpha - deltaTime), 0.0f);
-		}
+		doMovement();
 
 		shader.use();
-		shader.setUniform("alpha", alpha);
 		glActiveTexture(GL_TEXTURE0);
 		glBindTexture(GL_TEXTURE_2D, texture0);
 		glActiveTexture(GL_TEXTURE1);
@@ -227,16 +238,20 @@ int main(void)
 		{
 			glm::mat4 model;
 			model = glm::translate(model, cubePositions[i]);
+
 			GLfloat angle = 20.0f * (i + 1);
 			if ((i + 1) % 3 == 0) 
-			{
 				angle *= currentFrame;
-				
-			}
+
 			model = glm::rotate(model, angle, glm::vec3(1.0f, 0.3f, 0.5f));
+
 			shader.setUniform("model", model);
+
 			glDrawArrays(GL_TRIANGLES, 0, 36);
 		}
+
+		glm::mat4 view = camera.getViewMatrix();
+		shader.setUniform("view", view);
 
 		glfwSwapBuffers(window);
 		glfwPollEvents();
