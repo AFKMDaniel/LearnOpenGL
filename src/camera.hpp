@@ -26,6 +26,7 @@ private:
 	GLfloat mSpeed;
 	GLfloat mSensitivity;
 
+	glm::vec3 mGlobalUp;
 	glm::vec3 mPos;
 	glm::vec3 mFront;
 	glm::vec3 mUp;
@@ -37,6 +38,7 @@ private:
 public:
 	Camera(
 		const glm::vec3& cameraPos = glm::vec3{ 0.0f, 0.0f, 0.0f },
+		const glm::vec3& up = glm::vec3( 0.0f, 1.0f, 0.0f ),
 		GLfloat yaw = YAW,
 		GLfloat pitch = PITCH,
 		GLfloat speed = SPEED,

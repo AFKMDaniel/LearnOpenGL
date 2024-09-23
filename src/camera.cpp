@@ -1,8 +1,6 @@
 #include "camera.hpp"
 #include <glm/gtc/matrix_transform.hpp>
 
-const glm::vec3 GLOBAL_UP = glm::vec3(0.0f, 1.0f, 0.0f);
-
 void Camera::updateVectors()
 {
 	glm::vec3 front;
@@ -11,18 +9,20 @@ void Camera::updateVectors()
 	front.z = std::cos(glm::radians(mPitch)) * std::sin(glm::radians(mYaw));
 	mFront = glm::normalize(front);
 
-	mRight = glm::normalize(glm::cross(mFront, GLOBAL_UP));
+	mRight = glm::normalize(glm::cross(mFront, mGlobalUp));
 	mUp = glm::normalize(glm::cross(mRight, mFront));
 }
 
 Camera::Camera(
 	const glm::vec3& cameraPos,
+	const glm::vec3& up,
 	GLfloat yaw,
 	GLfloat pitch,
 	GLfloat speed,
 	GLfloat sensitivity
 ) :
 	mPos{ cameraPos },
+	mGlobalUp{ up },
 	mYaw{ yaw },
 	mPitch{ pitch },
 	mSpeed{ speed },
@@ -70,6 +70,6 @@ void Camera::processMouseMovement(GLfloat xOffset, GLfloat yOffset)
 
 glm::mat4 Camera::getViewMatrix()
 {
-	return glm::lookAt(mPos, mPos + mFront, GLOBAL_UP);
+	return glm::lookAt(mPos, mPos + mFront, mGlobalUp);
 }
 

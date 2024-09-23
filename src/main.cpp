@@ -97,38 +97,7 @@ int main(void)
 	glfwSetKeyCallback(window, key_callback);
 	glfwSetCursorPosCallback(window, mouse_callback);
 
-	int width, height, nrChannels;
-	unsigned int texture0, texture1;
-
-	stbi_set_flip_vertically_on_load(true);
-
-	unsigned char* data = stbi_load("resources/textures/container.jpg", &width, &height, &nrChannels, 0);
-	glGenTextures(1, &texture0);
-	glActiveTexture(GL_TEXTURE0);
-	glBindTexture(GL_TEXTURE_2D, texture0);
-	// set the texture wrapping/filtering options (on the currently bound texture object)
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, data);
-	glGenerateMipmap(GL_TEXTURE_2D);
-	stbi_image_free(data);
-
-	data = stbi_load("resources/textures/awesomeface.png", &width, &height, &nrChannels, 0);
-	glGenTextures(1, &texture1);
-	glActiveTexture(GL_TEXTURE1);
-	glBindTexture(GL_TEXTURE_2D, texture1);
-	// set the texture wrapping/filtering options (on the currently bound texture object)
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, data);
-	glGenerateMipmap(GL_TEXTURE_2D);
-	stbi_image_free(data);
-
-	float vertices[] = {
+	GLfloat vertices[] = {
 	-0.5f, -0.5f, -0.5f,  0.0f, 0.0f,
 	 0.5f, -0.5f, -0.5f,  1.0f, 0.0f,
 	 0.5f,  0.5f, -0.5f,  1.0f, 1.0f,
@@ -185,7 +154,7 @@ int main(void)
 	  glm::vec3(-1.3f,  1.0f, -1.5f)
 	};
 
-	unsigned int VBO, VAO;
+	GLuint VBO, VAO;
 	glGenVertexArrays(1, &VAO);
 	glBindVertexArray(VAO);
 
@@ -194,25 +163,29 @@ int main(void)
 	glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
 
 	//vertexes pos
-	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)0);
+	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(GLfloat), (void*)0);
 	glEnableVertexAttribArray(0);
 
 	//vertexes tex
-	glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)(3 * sizeof(float)));
+	glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(GLfloat), (void*)(3 * sizeof(float)));
 	glEnableVertexAttribArray(1);
+	glBindVertexArray(0);
+
+	GLuint lightVAO;
+	glGenVertexArrays(1, &lightVAO);
+	glBindVertexArray(lightVAO);
+
+	glBindBuffer(GL_ARRAY_BUFFER, VBO);
+
+	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(GLfloat), (void*)0);
+	glEnableVertexAttribArray(0);
+	glBindVertexArray(0);
+
 
 	Shader shader{ "resources/shaders/shader.vert", "resources/shaders/shader.frag" };
+	Shader lightShader{ "resources/shaders/shader.vert", "resources/shaders/light.frag" };
 
 	float alpha = 0.2f;
-
-	shader.use();
-	shader.setUniform("texture0", 0);
-	shader.setUniform("texture1", 1);
-	shader.setUniform("alpha", alpha);
-
-	glm::mat4 projection;
-	projection = glm::perspective(45.0f, static_cast<float>(SCREEN_WIDTH / SCREEN_HEIGHT), 0.1f, 100.0f);
-	shader.setUniform("projection", projection);
 
 	while (!glfwWindowShouldClose(window))
 	{
@@ -222,21 +195,47 @@ int main(void)
 		_deltaTime = currentFrame - _lastFrame;
 		_lastFrame = currentFrame;
 
-		glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
 		doMovement();
 
+		glm::mat4 view = camera.getViewMatrix();
+
+		glm::mat4 projection;
+		projection = glm::perspective(45.0f, static_cast<float>(SCREEN_WIDTH / SCREEN_HEIGHT), 0.1f, 100.0f);
+
+		glBindVertexArray(lightVAO);
+
+		glm::mat4 model;
+		model = glm::translate(model, glm::vec3(1.2f, 1.0f, 2.0f));
+		model = glm::scale(model, glm::vec3(0.2f));
+
+		lightShader.use();
+		lightShader.setUniform("model", model);
+		lightShader.setUniform("view", view);
+		lightShader.setUniform("projection", projection);
+
+		glDrawArrays(GL_TRIANGLES, 0, 36);
+		glBindVertexArray(0);
+
 		shader.use();
-		glActiveTexture(GL_TEXTURE0);
-		glBindTexture(GL_TEXTURE_2D, texture0);
-		glActiveTexture(GL_TEXTURE1);
-		glBindTexture(GL_TEXTURE_2D, texture1);
+
+		glm::vec3 objectColor{ 1.0f, 0.5f, 0.31f };
+		shader.setUniform("objectColor", objectColor);
+		glm::vec3 lightColor{ 1.0f, 1.0f, 1.0f };
+		shader.setUniform("lightColor", lightColor);
+
+		shader.setUniform("view", view);
+
+		shader.setUniform("projection", projection);
+
+		shader.setUniform("alpha", alpha);
+
 		glBindVertexArray(VAO);
 
 		for (int i = 0; i != cubePositions.size(); ++i)
 		{
-			glm::mat4 model;
+			model = glm::mat4();
 			model = glm::translate(model, cubePositions[i]);
 
 			GLfloat angle = 20.0f * (i + 1);
@@ -250,8 +249,7 @@ int main(void)
 			glDrawArrays(GL_TRIANGLES, 0, 36);
 		}
 
-		glm::mat4 view = camera.getViewMatrix();
-		shader.setUniform("view", view);
+		glBindVertexArray(0);
 
 		glfwSwapBuffers(window);
 		glfwPollEvents();
