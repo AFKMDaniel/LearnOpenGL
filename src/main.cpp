@@ -3,7 +3,6 @@
 
 #include <glad/glad.h>
 #include <GLFW/glfw3.h>
-
 #include <stb_image.h>
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
@@ -141,19 +140,6 @@ int main(void)
 	-0.5f,  0.5f, -0.5f,  0.0f, 1.0f
 	};
 
-	std::vector<glm::vec3> cubePositions {
-	  glm::vec3(0.0f,  0.0f,  0.0f),
-	  glm::vec3(2.0f,  5.0f, -15.0f),
-	  glm::vec3(-1.5f, -2.2f, -2.5f),
-	  glm::vec3(-3.8f, -2.0f, -12.3f),
-	  glm::vec3(2.4f, -0.4f, -3.5f),
-	  glm::vec3(-1.7f,  3.0f, -7.5f),
-	  glm::vec3(1.3f, -2.0f, -2.5f),
-	  glm::vec3(1.5f,  2.0f, -2.5f),
-	  glm::vec3(1.5f,  0.2f, -1.5f),
-	  glm::vec3(-1.3f,  1.0f, -1.5f)
-	};
-
 	GLuint VBO, VAO;
 	glGenVertexArrays(1, &VAO);
 	glBindVertexArray(VAO);
@@ -182,8 +168,8 @@ int main(void)
 	glBindVertexArray(0);
 
 
-	Shader shader{ "resources/shaders/shader.vert", "resources/shaders/shader.frag" };
-	Shader lightShader{ "resources/shaders/shader.vert", "resources/shaders/light.frag" };
+	Shader shader{ RESOURCES_PATH"shaders/shader.vert", RESOURCES_PATH"shaders/shader.frag" };
+	Shader lightShader{ RESOURCES_PATH"shaders/shader.vert", RESOURCES_PATH"shaders/light.frag" };
 
 	float alpha = 0.2f;
 
@@ -233,21 +219,10 @@ int main(void)
 
 		glBindVertexArray(VAO);
 
-		for (int i = 0; i != cubePositions.size(); ++i)
-		{
-			model = glm::mat4();
-			model = glm::translate(model, cubePositions[i]);
+		model = glm::mat4();
+		shader.setUniform("model", model);
 
-			GLfloat angle = 20.0f * (i + 1);
-			if ((i + 1) % 3 == 0) 
-				angle *= currentFrame;
-
-			model = glm::rotate(model, angle, glm::vec3(1.0f, 0.3f, 0.5f));
-
-			shader.setUniform("model", model);
-
-			glDrawArrays(GL_TRIANGLES, 0, 36);
-		}
+		glDrawArrays(GL_TRIANGLES, 0, 36);
 
 		glBindVertexArray(0);
 
